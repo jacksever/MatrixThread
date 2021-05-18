@@ -19,19 +19,16 @@ namespace Matrix
 			FirstMatrix = InitializationMatrix();
 			SecondMatrix = InitializationMatrix();
 
-			int firstIndex = 0;
-			Thread[] ThreadArray = new Thread[Dimension];
-			Matrix = new MatrixThread(FirstMatrix, SecondMatrix, firstIndex, Dimension);
+			int optimalThreads = Dimension * Dimension / Environment.ProcessorCount;
+			Thread[] ThreadArray = new Thread[Environment.ProcessorCount];
+			Matrix = new MatrixThread(FirstMatrix, SecondMatrix, Dimension);
 
-			for (int index = Dimension - 1; index >= 0; --index)
+			for (int i = 0; i < ThreadArray.Length; i++)
 			{
-				int lastIndex = firstIndex + Dimension;
-				if (index == 0)
-					lastIndex = Dimension * Dimension;
+				ThreadArray[i] = new Thread(SetMartixThread);
 
-				ThreadArray[index] = new Thread(new ParameterizedThreadStart(SetMartixThread));
-				ThreadArray[index].Start(lastIndex);
-				firstIndex = lastIndex;
+				int[] indexes = { i * optimalThreads, (i + 1) * optimalThreads };
+				ThreadArray[i].Start(indexes);
 			}
 
 			var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -40,7 +37,7 @@ namespace Matrix
 				item.Join();
 
 			watch.Stop();
-			Console.WriteLine("Время потоковое: " + watch.ElapsedMilliseconds);
+			Console.WriteLine("Время потоковое: " + watch.Elapsed);
 
 			ResultMatrix2 = MultiplicationMatrix();
 
@@ -58,8 +55,8 @@ namespace Matrix
 
 		public static void SetMartixThread(object items)
 		{
-			int index = (int)items;
-			Matrix.CalculateItem(index);
+			int[] index = (int[])items;
+			Matrix.MultipleMatrixThread(index[0], index[1]);
 		}
 
 		private static int[,] InitializationMatrix()
@@ -85,7 +82,7 @@ namespace Matrix
 						result[i, j] += FirstMatrix[i, k] * SecondMatrix[k, j];
 
 			watch.Stop();
-			Console.WriteLine("Время обычное: " + watch.ElapsedMilliseconds);
+			Console.WriteLine("Время обычное: " + watch.Elapsed);
 
 			return result;
 		}
